@@ -1,0 +1,59 @@
+from sqlalchemy.orm import Session
+
+from app.models.expense import Expense
+from app.schemas.expense import ExpenseCreate
+
+
+def get_expenses(db: Session):
+    return db.query(Expense).all()
+
+
+def get_expense(db: Session, expense_id: int):
+    return (
+        db.query(Expense)
+        .filter(Expense.id == expense_id)
+        .first()
+    )
+
+
+def create_expense(db: Session, expense: ExpenseCreate):
+    db_expense = Expense(**expense.model_dump())
+
+    db.add(db_expense)
+    db.commit()
+    db.refresh(db_expense)
+
+    return db_expense
+
+
+def update_expense(
+    db: Session,
+    expense_id: int,
+    expense: ExpenseCreate,
+):
+    db_expense = get_expense(db, expense_id)
+
+    if not db_expense:
+        return None
+
+    for key, value in expense.model_dump().items():
+        setattr(db_expense, key, value)
+
+    db.commit()
+    db.refresh(db_expense)
+
+    return db_expense
+
+
+def delete_expense(db: Session, expense_id: int):
+    db_expense = get_expense(db, expense_id)
+
+    if not db_expense:
+        return None
+
+    db.delete(db_expense)
+    db.commit()
+
+    return {
+        "message": "Expense deleted successfully"
+    }
